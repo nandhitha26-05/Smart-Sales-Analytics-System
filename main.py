@@ -1,5 +1,6 @@
 from db import conn
 import mysql.connector
+import pandas as pd
 
 cursor = conn.cursor()
 
@@ -8,7 +9,9 @@ while True:
     print("1. Add Product")
     print("2. View Products")
     print("3. Update Stock")
-    print("4.Exit")
+    print("4. Record Sale")
+    print("5.Sales Report")
+    print("6.Exit")
 
     choice = input("Enter choice: ")
 
@@ -55,8 +58,48 @@ while True:
       print("Stock Updated Successfully")
 
     elif choice == "4":
-        print("Thank You")
-        break
+        product_id = int(input("Enter Product ID:"))
+        quantity = int(input("Enter QuantitySold:"))
+        query = """
+        INSERT INTO sales(product_id,quantity)
+        VALUES(%s,%s)
+        """
+        cursor.execute(query, (product_id,quantity))
+
+        update_query = """
+        UPDATE products 
+        SET stock =stock - %s
+        WHERE product_id = %s
+        """
+        cursor.execute(update_query,(quantity,product_id))
+
+        conn.commit()
+
+        print("Sale Recorded Successfully")   
+
+    elif choice == "5":
+        query = "SELECT * FROM sales"
+        df = pd.read_sql(query,conn)
+
+        print("\n===== SALES REPORT =====")
+        print(df)
+
+        print("\n===== TOTAL SALES BY PRODUCT =====")
+
+        report = df.groupby("product_id")["quantity"].sum()
+
+        print(report)
+
+        top_product = report.idxmax()
+        top_sales = report.max()
+
+        print("\n===== TOP SELLING PRODUCT =====")
+        print("Product ID:", top_product)
+        print("Total sold:",top_sales)
+
+    elif choice == "6":
+        print("Thankyou") 
+        break             
 
 else:
     print("Invalid Choice")
